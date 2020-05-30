@@ -12,6 +12,8 @@ import java.util.Set;
 public class BuildReport {
     private String name;
     private String number;
+    @JsonProperty("scm_branch")
+    private String scmBranch;
     @JsonProperty("full_url")
     private String fullUrl;
     private long duration;
@@ -27,6 +29,7 @@ public class BuildReport {
         c.setAuthor(entry.getAuthor().getDisplayName());
         c.setCommitId(entry.getCommitId());
         c.setMessage(entry.getMsgEscaped());
+        c.setTimestap(entry.getTimestamp());
         for(ChangeLogSet.AffectedFile file: entry.getAffectedFiles()){
             c.addAffectedFile(file);
         }
@@ -60,6 +63,7 @@ public class BuildReport {
         private String author;
         private String message;
         private String commitId;
+        private long   timestamp;
         private Set<AffectedFile> files = new HashSet<>();
 
         public void addAffectedFile(ChangeLogSet.AffectedFile file){
@@ -67,6 +71,10 @@ public class BuildReport {
             f.setName(file.getPath());
             files.add(f);
         }
+
+		public void setTimestap(long timestamp) {
+			this.timestamp = timestamp;
+		}
     }
 
     @Data

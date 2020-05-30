@@ -1,19 +1,25 @@
 package com.cegedim.it.jenkins.pongoPlugin;
 
+import com.cegedim.it.jenkins.pongoPlugin.model.BuildReport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.model.*;
 import hudson.model.Messages;
+import hudson.util.LogTaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.tasks.test.AbstractTestResultAction;
 import hudson.tasks.test.TestResult;
-import com.cegedim.it.jenkins.pongoPlugin.model.BuildReport;
 import lombok.extern.slf4j.Slf4j;
+
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 import java.text.MessageFormat;
+import java.util.logging.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -57,32 +63,17 @@ public class MessageBuilder {
         return null;
     }
 
-    public String prebuild(){
-        appendStatus(STATUS_MESSAGE_START);
-        appendFullDisplayName();
-        appendDisplayName();
-        appendOpenLink();
-        appendCause();
-        appendChanges();
-
-        try {
-            return new ObjectMapper().writeValueAsString(report);
-        } catch (JsonProcessingException e) {
-            log.error("Error build json process", e);
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public String build(){
         appendFullDisplayName();
         appendDisplayName();
         appendOpenLink();
         appendCause();
+        appendBranch();
         appendDuration();
         appendStatus(getBuildResult());
         appendBuildSummary();
         appendTestSummary();
+        appendChanges();
         appendFailedTests();
         try {
             return new ObjectMapper().writeValueAsString(report);
@@ -93,7 +84,17 @@ public class MessageBuilder {
         return null;
     }
 
-    private void appendFullDisplayName(){
+    private void appendBranch() {
+		try {
+			report.setScmBranch(run.getEnvironment().get("BRANCH_NAME", "not-on-a-branch"));
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	private void appendFullDisplayName(){
         report.setName(this.escape(run.getFullDisplayName()));
     }
 
@@ -137,18 +138,20 @@ public class MessageBuilder {
 
     private void appendChanges(){
         report.initChanges();
-        if(this.run instanceof AbstractBuild){
-            AbstractBuild build = (AbstractBuild) run;
-            ChangeLogSet changeSet = build.getChangeSet();
-            if (!build.hasChangeSetComputed() || changeSet == null || changeSet.getItems().length == 0){
+        log.info("run class is {}",run.getClass());
+        if(this.run instanceof WorkflowRun){
+        	WorkflowRun build = (WorkflowRun) run;
+        	List<hudson.scm.ChangeLogSet<? extends hudson.scm.ChangeLogSet.Entry>> changeSets = build.getChangeSets();
+            if (changeSets == null || changeSets.isEmpty()){
                 listener.getLogger().println("No commit changes");
                 log.info("No commit changes");
                 return;
             }
-            for (Object o : changeSet.getItems()){
-                ChangeLogSet.Entry entry = (ChangeLogSet.Entry) o;
-                report.addChange(entry);
-            }
+            changeSets.forEach((changeSet)->{
+            	changeSet.forEach((entry)->{
+            		report.addChange(entry);
+            	});
+            });
         }
     }
 

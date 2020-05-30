@@ -10,7 +10,7 @@ import org.kohsuke.stapler.StaplerRequest;
 public class PongoGlobalConfig extends GlobalConfiguration {
 	private String webhookURL = "";
 	private Secret clientSecret;
-	private String clientID;
+	private String clientID = "";
 	
 	public PongoGlobalConfig() {
 		load();
@@ -25,14 +25,14 @@ public class PongoGlobalConfig extends GlobalConfiguration {
     	this.webhookURL = webhookURL;
     	save();
     }
-    public String getCientID() {
+    public String getClientID() {
     	return this.clientID;
     }
     public void setClientID(String clientID) {
     	this.clientID = clientID;
     	save();
     }
-    public Secret getCientSecret() {
+    public Secret getClientSecret() {
     	return this.clientSecret;
     }
     public void setClientSecret(Secret clientSecret) {

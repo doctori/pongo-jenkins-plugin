@@ -40,16 +40,9 @@ public class PongoNotifyClient{
 	private static final Logger log = LoggerFactory.getLogger(PongoNotifyClient.class);
 	
     private static CloseableHttpClient httpclient = HttpClients.createDefault();
-
-    public static boolean notify(String url, String clientID, hudson.util.Secret clientSecret, String message) {
-        boolean success = false;
-        log.info("Send notification to {}, message: {}", url, message);
-        if(url == null || url.isEmpty()){
-            log.error("Invalid URL: {}", url);
-
-            return success;
-        }
-        URI issuerURI;
+    
+    public static String getAccessToken(String clientID, hudson.util.Secret clientSecret) {
+    	URI issuerURI;
         URL providerConfigurationURL;
         InputStream configStream;
         OIDCProviderMetadata providerMetadata;
@@ -58,31 +51,31 @@ public class PongoNotifyClient{
         	issuerURI = new URI("https://accounts.cegedim.cloud");
         }catch(URISyntaxException e) {
         	log.error("Could not parse the issuer URL ");
-        	return success;
+        	return "";
         }
         try {
             providerConfigurationURL = issuerURI.resolve("/auth/realms/cloud/.well-known/openid-configuration").toURL();
         }catch(java.net.MalformedURLException e) {
         	log.error("Could not access the openid-configuration URL");
-        	return success;
+        	return "";
         }
         
         try {
         	configStream = providerConfigurationURL.openStream();
         }catch(java.io.IOException e) {
         	log.error("Could not access the issuer URL {} because {}",e.getMessage(),e);
-        	return success;
+        	return "";
         }
         // Read all data from URL
         String providerInfo = null;
-        try (java.util.Scanner s = new java.util.Scanner(configStream)) {
+        try (java.util.Scanner s = new java.util.Scanner(configStream,"UTF-8")) {
           providerInfo = s.useDelimiter("\\A").hasNext() ? s.next() : "";
         }
         try {
         	providerMetadata = OIDCProviderMetadata.parse(providerInfo);
         }catch(ParseException e) {
         	log.error("Could not parse the oidc configuration");
-        	return success;
+        	return "";
         }
      // Construct the client credentials grant
         AuthorizationGrant clientGrant = new ClientCredentialsGrant();
@@ -95,11 +88,11 @@ public class PongoNotifyClient{
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return success;
+			return "";
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return success;
+			return "";
 		}
 
         if (! tokenResponse.indicatesSuccess()) {
@@ -111,12 +104,24 @@ public class PongoNotifyClient{
 
         // Get the access token, the server may also return a refresh token
         AccessToken accessToken = successResponse.getTokens().getAccessToken();
-        log.info("token is "+accessToken.getValue());
+        return accessToken.toAuthorizationHeader();
+    }
+    
+    public static boolean notify(String url, String clientID, hudson.util.Secret clientSecret, String message) {
+        boolean success = false;
+        log.info("Send notification to {}, message: {}", url, message);
+        if(url == null || url.isEmpty()){
+            log.error("Invalid URL: {}", url);
+
+            return success;
+        }
+        
         HttpPost httpPost = null;
         try {
             httpPost = new HttpPost(url);
             httpPost.setHeader("content-type", "application/json;charset=UTF-8");
-            httpPost.setHeader("Authorization", accessToken.toAuthorizationHeader());
+            // TODO : better error handling
+            httpPost.setHeader("Authorization", getAccessToken(clientID,clientSecret));
             
             if(message != null && !message.isEmpty()){
                 StringEntity stringEntity = new StringEntity(message, "UTF-8");

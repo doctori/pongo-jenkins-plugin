@@ -29,8 +29,8 @@ public class GlobalRunListener extends RunListener<Run<?,?>> {
 	    // String path = build.getParent().getRelativeNameFrom(Jenkins.get());
 	    // Get the webhook URL and token from configuration
 	    String webhookURL = PongoGlobalConfig.getInstance().getWebhookURL();
-	    String clientID = PongoGlobalConfig.getInstance().getCientID();
-	    Secret clientSecret = PongoGlobalConfig.getInstance().getCientSecret();
+	    String clientID = PongoGlobalConfig.getInstance().getClientID();
+	    Secret clientSecret = PongoGlobalConfig.getInstance().getClientSecret();
         log.info("Perform: {}", build.getDisplayName());
         log.info("---------------------- Perform ----------------------");
         PongoNotifier notifier = new PongoNotifier(webhookURL, clientID, clientSecret );
