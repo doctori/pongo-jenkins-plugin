@@ -11,11 +11,29 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
+import com.nimbusds.oauth2.sdk.AccessTokenResponse;
+import com.nimbusds.oauth2.sdk.AuthorizationCode;
+import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
+import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.ClientCredentialsGrant;
+import com.nimbusds.oauth2.sdk.ParseException;
+import com.nimbusds.oauth2.sdk.TokenErrorResponse;
+import com.nimbusds.oauth2.sdk.TokenRequest;
+import com.nimbusds.oauth2.sdk.TokenResponse;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
+import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
+import com.nimbusds.oauth2.sdk.auth.Secret;
+import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.token.AccessToken;
+import com.nimbusds.oauth2.sdk.token.RefreshToken;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.MalformedURLException;
+
 
 public class PongoNotifyClient{
 
@@ -23,7 +41,7 @@ public class PongoNotifyClient{
 	
     private static CloseableHttpClient httpclient = HttpClients.createDefault();
 
-    public static boolean notify(String url, String authToken, String message) {
+    public static boolean notify(String url, String clientID, hudson.util.Secret clientSecret, String message) {
         boolean success = false;
         log.info("Send notification to {}, message: {}", url, message);
         if(url == null || url.isEmpty()){
@@ -31,23 +49,75 @@ public class PongoNotifyClient{
 
             return success;
         }
+        URI issuerURI;
+        URL providerConfigurationURL;
+        InputStream configStream;
+        OIDCProviderMetadata providerMetadata;
         // Oauth Config
-        URI issuerURI = new URI("https://accounts-qa.it-cloud.cegedim.cloud/auth/realms/cloud");
-        URL providerConfigurationURL = issuerURI.resolve("/.well-known/openid-configuration").toURL();
-        InputStream stream = providerConfigurationURL.openStream();
+        try {
+        	issuerURI = new URI("https://accounts.cegedim.cloud");
+        }catch(URISyntaxException e) {
+        	log.error("Could not parse the issuer URL ");
+        	return success;
+        }
+        try {
+            providerConfigurationURL = issuerURI.resolve("/auth/realms/cloud/.well-known/openid-configuration").toURL();
+        }catch(java.net.MalformedURLException e) {
+        	log.error("Could not access the openid-configuration URL");
+        	return success;
+        }
+        
+        try {
+        	configStream = providerConfigurationURL.openStream();
+        }catch(java.io.IOException e) {
+        	log.error("Could not access the issuer URL {} because {}",e.getMessage(),e);
+        	return success;
+        }
         // Read all data from URL
         String providerInfo = null;
-        try (java.util.Scanner s = new java.util.Scanner(stream)) {
+        try (java.util.Scanner s = new java.util.Scanner(configStream)) {
           providerInfo = s.useDelimiter("\\A").hasNext() ? s.next() : "";
         }
-        OIDCProviderMetadata providerMetadata = OIDCProviderMetadata.parse(providerInfo);
+        try {
+        	providerMetadata = OIDCProviderMetadata.parse(providerInfo);
+        }catch(ParseException e) {
+        	log.error("Could not parse the oidc configuration");
+        	return success;
+        }
+     // Construct the client credentials grant
+        AuthorizationGrant clientGrant = new ClientCredentialsGrant();
+        // The credentials to authenticate the client at the token endpoint
+        ClientAuthentication clientAuth = new ClientSecretBasic(new ClientID(clientID), new Secret(clientSecret.getPlainText()));
+        TokenRequest request = new TokenRequest(providerMetadata.getTokenEndpointURI(),clientAuth,clientGrant);
+        TokenResponse tokenResponse;
+		try {
+			tokenResponse = TokenResponse.parse(request.toHTTPRequest().send());
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return success;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return success;
+		}
+
+        if (! tokenResponse.indicatesSuccess()) {
+            // We got an error response...
+            TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
+        }
+
+        AccessTokenResponse successResponse = tokenResponse.toSuccessResponse();
+
+        // Get the access token, the server may also return a refresh token
+        AccessToken accessToken = successResponse.getTokens().getAccessToken();
+        log.info("token is "+accessToken.getValue());
         HttpPost httpPost = null;
         try {
             httpPost = new HttpPost(url);
             httpPost.setHeader("content-type", "application/json;charset=UTF-8");
-            if(authToken != null && !authToken.isEmpty()){
-                httpPost.setHeader("Authorization", authToken);
-            }
+            httpPost.setHeader("Authorization", accessToken.toAuthorizationHeader());
+            
             if(message != null && !message.isEmpty()){
                 StringEntity stringEntity = new StringEntity(message, "UTF-8");
                 stringEntity.setContentEncoding("UTF-8");

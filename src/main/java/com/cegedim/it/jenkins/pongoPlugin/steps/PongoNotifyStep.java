@@ -7,6 +7,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.Secret;
 
 import com.cegedim.it.jenkins.pongoPlugin.PongoNotifier;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -19,7 +20,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class PongoNotifyStep extends Step {
 	private String url = "";
 	private String message = "";
-	private String authToken = "";
+	private String clientID = "";
+	private Secret clientSecret;
 
     // NOTE: Bump this number if the class evolves as a breaking change
     // (e.g. serializable fields change)
@@ -53,7 +55,7 @@ public class PongoNotifyStep extends Step {
 
 		@Override
 		protected Void run() throws Exception {
-			PongoNotifier notifier = new PongoNotifier(this.step.url,this.step.authToken);
+			PongoNotifier notifier = new PongoNotifier(this.step.url,this.step.clientID,this.step.clientSecret);
 			notifier.perform(
 					getContext().get(Run.class),
 					getContext().get(FilePath.class),

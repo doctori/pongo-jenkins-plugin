@@ -15,6 +15,7 @@ import hudson.tasks.Builder;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 
@@ -35,31 +36,40 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
 	
 	
     private String webhookURL;
-    private String authToken;
+	private Secret clientSecret;
+	private String clientID;
 
     private static final Logger log = LoggerFactory.getLogger(PongoNotifier.class);
     
     
     @DataBoundConstructor
-    public PongoNotifier(String webhookUrl, String authToken) {
+    public PongoNotifier(String webhookUrl, String clientID, Secret clientSecret) {
     	this.webhookURL         = webhookUrl;
-    	this.authToken          = authToken;
-    
+    	this.clientID          = clientID;
+    	this.clientSecret      = clientSecret;
     }
+
     public String getWebhookURL() {
     	return this.webhookURL;
     }
-    public String getAuthToken() {
-    	return this.authToken;
-    }    
+    public String getCientID() {
+    	return this.clientID;
+    }
+    public String getCientSecret() {
+    	return this.clientID;
+    }
+
+    @DataBoundSetter
+    public void setClientID(String clientID) {
+    	this.clientID = clientID;
+    }
+    @DataBoundSetter
+    public void setClientSecret(Secret clientSecret) {
+    	this.clientSecret = clientSecret;
+    }
     @DataBoundSetter
     public void setWebhookUrl(String webhookUrl) {
     	this.webhookURL = webhookUrl;
-    }
-    
-    @DataBoundSetter
-    public void setAuthToken(String authToken) {
-    	this.authToken = authToken;
     }
     
     public boolean prebuild(Run<?, ?> build, TaskListener listener) {
@@ -81,7 +91,7 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
         log.info("Perform: {}", build.getDisplayName());
         listener.getLogger().println("---------------------- Perform ----------------------");
         MessageBuilder messageBuilder = new MessageBuilder(this, build, listener);
-        PongoNotifyClient.notify(this.webhookURL, this.authToken, messageBuilder.build());
+        PongoNotifyClient.notify(this.webhookURL, this.clientID,this.clientSecret, messageBuilder.build());
 
 
     }

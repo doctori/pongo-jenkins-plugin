@@ -1,6 +1,7 @@
 package com.cegedim.it.jenkins.pongoPlugin;
 
 import hudson.Extension;
+import hudson.util.Secret;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
@@ -8,7 +9,9 @@ import org.kohsuke.stapler.StaplerRequest;
 @Extension
 public class PongoGlobalConfig extends GlobalConfiguration {
 	private String webhookURL = "";
-	private String authToken = "";
+	private Secret clientSecret;
+	private String clientID;
+	
 	public PongoGlobalConfig() {
 		load();
 	}
@@ -22,19 +25,25 @@ public class PongoGlobalConfig extends GlobalConfiguration {
     	this.webhookURL = webhookURL;
     	save();
     }
-    public String getAuthToken() {
-    	return this.authToken;
+    public String getCientID() {
+    	return this.clientID;
     }
-    public void setAuthToken(String authToken) {
-    	this.authToken = authToken;
+    public void setClientID(String clientID) {
+    	this.clientID = clientID;
+    	save();
+    }
+    public Secret getCientSecret() {
+    	return this.clientSecret;
+    }
+    public void setClientSecret(Secret clientSecret) {
+    	this.clientSecret = clientSecret;
     	save();
     }
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) {
-    	this.webhookURL = (String) formData.get("webhookURL");
-    	this.authToken  = (String) formData.get("authToken");
-    	save();
-    	return true;
+        req.bindJSON(this, formData);
+        save();
+        return true;
     			
     }
     
