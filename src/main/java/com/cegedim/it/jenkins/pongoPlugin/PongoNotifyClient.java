@@ -10,9 +10,12 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 
 public class PongoNotifyClient{
 
@@ -28,6 +31,16 @@ public class PongoNotifyClient{
 
             return success;
         }
+        // Oauth Config
+        URI issuerURI = new URI("https://accounts-qa.it-cloud.cegedim.cloud/auth/realms/cloud");
+        URL providerConfigurationURL = issuerURI.resolve("/.well-known/openid-configuration").toURL();
+        InputStream stream = providerConfigurationURL.openStream();
+        // Read all data from URL
+        String providerInfo = null;
+        try (java.util.Scanner s = new java.util.Scanner(stream)) {
+          providerInfo = s.useDelimiter("\\A").hasNext() ? s.next() : "";
+        }
+        OIDCProviderMetadata providerMetadata = OIDCProviderMetadata.parse(providerInfo);
         HttpPost httpPost = null;
         try {
             httpPost = new HttpPost(url);
