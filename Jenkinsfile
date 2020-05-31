@@ -1,0 +1,3 @@
+node(){
+  bat("echo 'super'")
+}
