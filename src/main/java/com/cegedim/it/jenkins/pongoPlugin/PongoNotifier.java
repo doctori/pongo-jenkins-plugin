@@ -38,15 +38,16 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
     private String webhookURL;
 	private Secret clientSecret;
 	private String clientID;
-
+	private boolean enabled;
     private static final Logger log = LoggerFactory.getLogger(PongoNotifier.class);
     
     
     @DataBoundConstructor
-    public PongoNotifier(String webhookUrl, String clientID, Secret clientSecret) {
+    public PongoNotifier(String webhookUrl, String clientID, Secret clientSecret,boolean enabled) {
     	this.webhookURL         = webhookUrl;
     	this.clientID          = clientID;
     	this.clientSecret      = clientSecret;
+    	this.enabled           = enabled;
     }
 
     public String getWebhookURL() {
@@ -58,7 +59,10 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
     public String getCientSecret() {
     	return this.clientID;
     }
-
+    public boolean isEnabled() {
+		return enabled;
+	}
+    
     @DataBoundSetter
     public void setClientID(String clientID) {
     	this.clientID = clientID;
@@ -71,7 +75,11 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
     public void setWebhookUrl(String webhookUrl) {
     	this.webhookURL = webhookUrl;
     }
-    
+
+    @DataBoundSetter
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
     public boolean prebuild(Run<?, ?> build, TaskListener listener) {
         return true;
     }
@@ -87,18 +95,20 @@ public class PongoNotifier extends Notifier implements SimpleBuildStep {
 
     @Override
     public void perform(@Nonnull Run<?, ?> build, @Nonnull FilePath workspace, @Nonnull Launcher launcher, @Nonnull TaskListener listener)  throws InterruptedException, IOException{
-    	
-        log.info("Perform: {}", build.getDisplayName());
-        listener.getLogger().println("---------------------- Perform ----------------------");
-        MessageBuilder messageBuilder = new MessageBuilder(this, build, listener);
-        PongoNotifyClient.notify(this.webhookURL, this.clientID,this.clientSecret, messageBuilder.build());
-
+    	if(this.enabled) {
+	        log.info("Perform: {}", build.getDisplayName());
+	        listener.getLogger().println("---------------------- Perform ----------------------");
+	        MessageBuilder messageBuilder = new MessageBuilder(this, build, listener);
+	        PongoNotifyClient.notify(this.webhookURL, this.clientID,this.clientSecret, messageBuilder.build());
+    	}
 
     }
 
         
     
-    @Symbol("pongo")
+
+
+	@Symbol("pongo")
     @Extension(optional = true)
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder>  {
         

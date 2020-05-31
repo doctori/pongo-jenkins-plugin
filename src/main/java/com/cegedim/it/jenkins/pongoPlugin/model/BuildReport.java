@@ -11,11 +11,14 @@ import java.util.Set;
 @Data
 public class BuildReport {
     private String name;
+    @JsonProperty("parent_name")
+    private String parentName;
     private String number;
     @JsonProperty("scm_branch")
     private String scmBranch;
     @JsonProperty("full_url")
     private String fullUrl;
+    
     private long duration;
     private String status;
     private String summary;

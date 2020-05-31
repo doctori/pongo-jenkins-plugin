@@ -139,7 +139,7 @@ public class PongoNotifyClient{
                 success = true;
             }
         } catch (IllegalArgumentException e1){
-            log.error("Invalid URL: {}", url);
+            log.error("Invalid URL: {} : {}", url,e1);
         } catch (IOException e2) {
             log.error("Error posting to Zoom, url: {}, message: {}", url, message);
         } finally {

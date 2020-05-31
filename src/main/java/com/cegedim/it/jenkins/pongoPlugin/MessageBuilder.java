@@ -12,6 +12,7 @@ import hudson.tasks.test.TestResult;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,7 @@ public class MessageBuilder {
     public String build(){
         appendFullDisplayName();
         appendDisplayName();
+        appendParentName();
         appendOpenLink();
         appendCause();
         appendBranch();
@@ -84,7 +86,19 @@ public class MessageBuilder {
         return null;
     }
 
-    private void appendBranch() {
+    private void appendParentName() {
+    	log.info("parent class is "+run.getParent().getClass());
+    	// in case we are on a multibranch pipeline : 
+    	if(run.getParent() instanceof WorkflowJob){
+    		report.setParentName(this.escape(run.getParent().getParent().getFullDisplayName()));
+    	}else {
+    		report.setParentName(this.escape(run.getParent().getName()));
+    	}
+		
+		
+	}
+
+	private void appendBranch() {
 		try {
 			report.setScmBranch(run.getEnvironment().get("BRANCH_NAME", "not-on-a-branch"));
 		} catch (IOException | InterruptedException e) {

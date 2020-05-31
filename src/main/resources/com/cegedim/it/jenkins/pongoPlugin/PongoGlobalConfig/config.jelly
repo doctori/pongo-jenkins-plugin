@@ -10,5 +10,8 @@
 	    <f:entry title="clientSecret" field="clientSecret">
 	        <f:password />
 	    </f:entry>
+	    <f:entry title="Enabled" field="enabled">
+	        <f:checkbox />
+	    </f:entry>
 	</f:section>
 </j:jelly>

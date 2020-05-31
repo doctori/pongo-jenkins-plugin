@@ -31,11 +31,14 @@ public class GlobalRunListener extends RunListener<Run<?,?>> {
 	    String webhookURL = PongoGlobalConfig.getInstance().getWebhookURL();
 	    String clientID = PongoGlobalConfig.getInstance().getClientID();
 	    Secret clientSecret = PongoGlobalConfig.getInstance().getClientSecret();
+	    boolean enabled = PongoGlobalConfig.getInstance().isEnabled();
         log.info("Perform: {}", build.getDisplayName());
         log.info("---------------------- Perform ----------------------");
-        PongoNotifier notifier = new PongoNotifier(webhookURL, clientID, clientSecret );
+        PongoNotifier notifier = new PongoNotifier(webhookURL, clientID, clientSecret, enabled);
         MessageBuilder messageBuilder = new MessageBuilder(notifier, build, listener);
-        PongoNotifyClient.notify(webhookURL, clientID, clientSecret, messageBuilder.build());
+        if (notifier.isEnabled()) {
+        	PongoNotifyClient.notify(webhookURL, clientID, clientSecret, messageBuilder.build());
+        }
 	    		
 	}
 

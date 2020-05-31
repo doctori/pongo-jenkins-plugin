@@ -11,6 +11,7 @@ public class PongoGlobalConfig extends GlobalConfiguration {
 	private String webhookURL = "";
 	private Secret clientSecret;
 	private String clientID = "";
+	private boolean enabled = false;
 	
 	public PongoGlobalConfig() {
 		load();
@@ -22,7 +23,7 @@ public class PongoGlobalConfig extends GlobalConfiguration {
     	return this.webhookURL;
     }
     public void setWebhookURL(String webhookURL) {
-    	this.webhookURL = webhookURL;
+    	this.webhookURL = webhookURL.trim();
     	save();
     }
     public String getClientID() {
@@ -39,6 +40,12 @@ public class PongoGlobalConfig extends GlobalConfiguration {
     	this.clientSecret = clientSecret;
     	save();
     }
+	public boolean isEnabled() {
+		return enabled;
+	}
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) {
         req.bindJSON(this, formData);
@@ -46,5 +53,6 @@ public class PongoGlobalConfig extends GlobalConfiguration {
         return true;
     			
     }
+
     
 }
